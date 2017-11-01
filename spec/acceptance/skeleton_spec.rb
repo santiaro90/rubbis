@@ -1,11 +1,13 @@
 require "redis"
 
+require "rubbis/server"
+
 TEST_PORT = 6380
 
-describe "Rubis", :acceptance do
+describe Rubbis::Server, :acceptance do
   it "responds to ping" do
     with_server do
-      expect(client.ping).to eq("OK")
+      expect(client.ping).to eq("PONG")
     end
   end
 
