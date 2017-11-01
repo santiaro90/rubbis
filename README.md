@@ -1,2 +1,2 @@
-# ruby-redis
+# Rubbis
 Redis clone built in Ruby
