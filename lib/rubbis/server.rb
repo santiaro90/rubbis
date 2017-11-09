@@ -66,22 +66,16 @@ module Rubbis
 
         cmds.each do |cmd|
           response = case cmd.first.downcase
-                     when "ping" then "+PONG\r\n"
-                     when "echo" then "$#{cmd[1].length}\r\n#{cmd[1]}\r\n"
+                     when "ping" then :pong
+                     when "echo" then cmd[1]
                      when "set" then
                        data[cmd[1]] = cmd[2]
-                       "+OK\r\n"
+                       :ok
                      when "get" then
-                       value = data[cmd[1]]
-
-                       if value
-                         "$#{value.length}\r\n#{value}\r\n"
-                       else
-                         "$-1\r\n"
-                       end
+                       data[cmd[1]]
                      end
 
-          client.write(response)
+          client.write Rubbis::Protocol.marshal(response)
         end
       end
 
