@@ -28,11 +28,20 @@ describe Rubbis::Server, :acceptance do
     end
   end
 
+  it "gets and sets values" do
+    with_server do
+      expect(client.get("abc")).to eq(nil)
+      expect(client.set("abc", "123")).to eq("OK")
+      expect(client.get("abc")).to eq("123")
+    end
+  end
+
   def client
     Redis.new(host: "localhost", port: TEST_PORT)
   end
 
   def with_server
+    server = nil
     server_thread = Thread.new do
       server = Rubbis::Server.new(TEST_PORT)
       server.listen
@@ -47,7 +56,7 @@ describe Rubbis::Server, :acceptance do
 
     raise
   ensure
-    Thread.kill(server_thread) if server_thread
+    server.shutdown if server
   end
 
   def wait_for_open_port(port)

@@ -2,8 +2,16 @@ require "socket"
 
 module Rubbis
   class Server
+    attr_reader :shutdown_pipe
+
     def initialize(port)
       @port = port
+      @shutdown_pipe = IO.pipe
+      @data = {}
+    end
+
+    def shutdown
+      shutdown_pipe[1].close
     end
 
     def listen
@@ -12,8 +20,11 @@ module Rubbis
       server = TCPServer.new(port)
 
       readable << server
+      readable << shutdown_pipe[0]
 
-      loop do
+      running = true
+
+      while running
         ready_to_read, _ = IO.select(readable + clients.keys)
 
         ready_to_read.each do |socket|
@@ -21,9 +32,11 @@ module Rubbis
           when server
             child_socket = socket.accept
             clients[child_socket] = Handler.new(child_socket)
+          when shutdown_pipe[0]
+            running = false
           else
             begin
-              clients[socket].process!
+              clients[socket].process!(@data)
             rescue EOFError
               clients.delete(socket)
               socket.close
@@ -45,7 +58,7 @@ module Rubbis
         @buffer = ""
       end
 
-      def process!
+      def process!(data)
         buffer << client.read_nonblock(1024)
 
         cmds, processed = unmarshal(buffer)
@@ -55,6 +68,17 @@ module Rubbis
           response = case cmd.first.downcase
                      when "ping" then "+PONG\r\n"
                      when "echo" then "$#{cmd[1].length}\r\n#{cmd[1]}\r\n"
+                     when "set" then
+                       data[cmd[1]] = cmd[2]
+                       "+OK\r\n"
+                     when "get" then
+                       value = data[cmd[1]]
+
+                       if value
+                         "$#{value.length}\r\n#{value}\r\n"
+                       else
+                         "$-1\r\n"
+                       end
                      end
 
           client.write(response)
