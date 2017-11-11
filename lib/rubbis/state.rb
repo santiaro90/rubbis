@@ -50,6 +50,21 @@ module Rubbis
       data[key]
     end
 
+    def hset(hash, key, value)
+      data[hash] ||= {}
+
+      data[hash][key] = value
+      :ok
+    end
+
+    def hget(hash, key)
+      data[hash][key]
+    end
+
+    def hmget(hash, *keys)
+      data[hash].values_at(*keys)
+    end
+
     private
 
     attr_reader :data

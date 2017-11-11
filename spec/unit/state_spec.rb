@@ -30,4 +30,21 @@ describe Rubbis::State, :unit do
       expect(state.set("abc")).to eq(Rubbis::Error.incorrect_args("set"))
     end
   end
+
+  describe "#hset" do
+    it "sets a value" do
+      expect(state.hset("myhash", "abc", "123")).to eq(:ok)
+      expect(state.hset("otherhash", "def", "456")).to eq(:ok)
+      expect(state.hget("myhash", "abc")).to eq("123")
+    end
+  end
+
+  describe "#hmget" do
+    it "returns multiple values at once" do
+      state.hset("myhash", "abc", "123")
+      state.hset("myhash", "def", "456")
+
+      expect(state.hmget("myhash", "abc", "def")).to eq(%w[123 456])
+    end
+  end
 end
