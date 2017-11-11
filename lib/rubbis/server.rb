@@ -1,6 +1,7 @@
 require "socket"
 
 require "rubbis/protocol"
+require "rubbis/state"
 
 module Rubbis
   class Server
@@ -9,7 +10,7 @@ module Rubbis
     def initialize(port)
       @port = port
       @shutdown_pipe = IO.pipe
-      @data = {}
+      @state = State.new
     end
 
     def shutdown
@@ -38,7 +39,7 @@ module Rubbis
             running = false
           else
             begin
-              clients[socket].process!(@data)
+              clients[socket].process!(@state)
             rescue EOFError
               clients.delete(socket)
               socket.close
@@ -58,7 +59,7 @@ module Rubbis
         @buffer = ""
       end
 
-      def process!(data)
+      def process!(state)
         buffer << client.read_nonblock(1024)
 
         cmds, processed = unmarshal(buffer)
@@ -68,11 +69,7 @@ module Rubbis
           response = case cmd.first.downcase
                      when "ping" then :pong
                      when "echo" then cmd[1]
-                     when "set" then
-                       data[cmd[1]] = cmd[2]
-                       :ok
-                     when "get" then
-                       data[cmd[1]]
+                     else state.apply_command(cmd)
                      end
 
           client.write Rubbis::Protocol.marshal(response)
@@ -129,6 +126,6 @@ module Rubbis
 
     private
 
-      attr_reader :port
+    attr_reader :port
   end
 end
