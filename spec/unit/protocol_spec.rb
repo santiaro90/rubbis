@@ -6,7 +6,7 @@ describe Rubbis::Protocol do
   describe ".marshal" do
     def self.it_marshals(ruby, wire)
       specify ruby.inspect do
-        expect(described_class.marshal ruby).to eq(wire)
+        expect(described_class.marshal(ruby)).to eq(wire)
       end
     end
 

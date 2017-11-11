@@ -1,5 +1,7 @@
 require "socket"
 
+require "rubbis/protocol"
+
 module Rubbis
   class Server
     attr_reader :shutdown_pipe
@@ -25,7 +27,7 @@ module Rubbis
       running = true
 
       while running
-        ready_to_read, _ = IO.select(readable + clients.keys)
+        ready_to_read = IO.select(readable + clients.keys).first
 
         ready_to_read.each do |socket|
           case socket
@@ -45,9 +47,7 @@ module Rubbis
         end
       end
     ensure
-      (readable + clients.keys).each do |socket|
-        socket.close
-      end
+      (readable + clients.keys).each(&:close)
     end
 
     class Handler

@@ -1,3 +1,4 @@
+require "English"
 require "redis"
 
 require "rubbis/server"
@@ -30,16 +31,14 @@ module AcceptanceHelpers
 
   def wait_for_open_port(port)
     time = Time.now
-    while !check_port(port) && 1 > Time.now - time
-      sleep 0.01
-    end
 
+    sleep 0.01 while !check_port(port) && Time.now - time <= 1
     raise Timeout::Error unless check_port(port)
   end
 
   def check_port(port)
     `nc -z localhost #{port}`
-    $?.success?
+    $CHILD_STATUS.success?
   end
 end
 
