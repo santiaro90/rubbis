@@ -65,6 +65,11 @@ module Rubbis
       data[hash].values_at(*keys)
     end
 
+    def hincrby(hash, key, amount)
+      existing = data[hash][key]
+      data[hash][key] = existing.to_i + amount.to_i
+    end
+
     private
 
     attr_reader :data

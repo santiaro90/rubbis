@@ -11,6 +11,7 @@ describe Rubbis::Protocol do
       end
     end
 
+    it_marshals 10, ":10\r\n"
     it_marshals "hello", "$5\r\nhello\r\n"
     it_marshals %w[a bc], "*2\r\n$1\r\na\r\n$2\r\nbc\r\n"
     it_marshals :ok, "+OK\r\n"
