@@ -6,6 +6,10 @@ module Rubbis
       new "wrong number of arguments for '#{cmd}' command"
     end
 
+    def self.type_error
+      new "wrong type for command"
+    end
+
     def self.unknown_cmd(cmd)
       new "unknown command '#{cmd}'"
     end
@@ -62,7 +66,13 @@ module Rubbis
     end
 
     def hmget(hash, *keys)
-      data[hash].values_at(*keys)
+      existing = data.fetch(hash, {})
+
+      if existing.is_a?(Hash)
+        existing.values_at(*keys)
+      else
+        Error.type_error
+      end
     end
 
     def hincrby(hash, key, amount)
