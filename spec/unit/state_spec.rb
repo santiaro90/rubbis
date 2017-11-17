@@ -3,7 +3,8 @@ require "spec_helper"
 require "rubbis/state"
 
 describe Rubbis::State, :unit do
-  let(:state) { described_class.new }
+  let(:clock) { FakeClock.new }
+  let(:state) { described_class.new(clock) }
 
   describe "#set" do
     it "sets a value" do
@@ -61,6 +62,19 @@ describe Rubbis::State, :unit do
     it "increments a counter stored in a hash" do
       state.hset("myhash", "abc", "123")
       expect(state.hincrby("myhash", "abc", "2")).to eq(125)
+    end
+  end
+
+  describe "#expire" do
+    it "expires a key passively" do
+      state.set("abc", "123")
+      state.expire("abc", "1")
+
+      clock.sleep 0.9
+      expect(state.get("abc")).to eq("123")
+
+      clock.sleep 0.1
+      expect(state.get("abc")).to eq(nil)
     end
   end
 end

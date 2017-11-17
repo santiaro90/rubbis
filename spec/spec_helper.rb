@@ -42,6 +42,20 @@ module AcceptanceHelpers
   end
 end
 
+class FakeClock
+  attr_reader :t
+
+  def initialize
+    @t = 0
+  end
+
+  def sleep(t)
+    @t += t
+  end
+
+  alias now t
+end
+
 RSpec.configure do |c|
   c.include AcceptanceHelpers, acceptance: true
 end

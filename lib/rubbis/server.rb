@@ -10,7 +10,7 @@ module Rubbis
     def initialize(port)
       @port = port
       @shutdown_pipe = IO.pipe
-      @state = State.new
+      @state = State.new(Clock.new)
     end
 
     def shutdown
@@ -49,6 +49,16 @@ module Rubbis
       end
     ensure
       (readable + clients.keys).each(&:close)
+    end
+
+    class Clock
+      def now
+        Time.now.to_f
+      end
+
+      def sleep(x)
+        ::Kernel.sleep x
+      end
     end
 
     class Handler

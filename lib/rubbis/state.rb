@@ -16,8 +16,10 @@ module Rubbis
   end
 
   class State
-    def initialize
+    def initialize(clock)
       @data = {}
+      @expires = {}
+      @clock = clock
     end
 
     def self.valid_command?(cmd)
@@ -32,6 +34,15 @@ module Rubbis
       return Error.unknown_cmd(cmd[0]) unless State.valid_command?(cmd[0])
 
       public_send(*cmd)
+    end
+
+    def expire(key, value)
+      if get(key)
+        expires[key] = clock.now + value.to_i
+        1
+      else
+        0
+      end
     end
 
     def set(*args)
@@ -51,7 +62,15 @@ module Rubbis
     end
 
     def get(key)
+      expiry = expires[key]
+      del(key) if expiry && expiry <= clock.now
+
       data[key]
+    end
+
+    def del(key)
+      expires.delete(key)
+      data.delete(key)
     end
 
     def hset(hash, key, value)
@@ -82,6 +101,6 @@ module Rubbis
 
     private
 
-    attr_reader :data
+    attr_reader :data, :clock, :expires
   end
 end
