@@ -65,15 +65,17 @@ module Rubbis
         cmds, processed = Protocol.unmarshal(buffer)
         @buffer = buffer[processed..-1]
 
-        cmds.each do |cmd|
-          response = case cmd.first.downcase
-                     when "ping" then :pong
-                     when "echo" then cmd[1]
-                     else state.apply_command(cmd)
-                     end
+        cmds.each { |cmd| exec_command(cmd, state) }
+      end
 
-          client.write(Protocol.marshal(response))
-        end
+      def exec_command(cmd, state)
+        response = case cmd.first.downcase
+                   when "ping" then :pong
+                   when "echo" then cmd[1]
+                   else state.apply_command(cmd)
+                   end
+
+        client.write(Protocol.marshal(response))
       end
     end
 
