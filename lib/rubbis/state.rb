@@ -36,6 +36,10 @@ module Rubbis
       public_send(*cmd)
     end
 
+    def exists(key)
+      data[key] ? 1 : 0
+    end
+
     def expire(key, value)
       if get(key)
         expires[key] = clock.now + value.to_i
@@ -81,11 +85,12 @@ module Rubbis
     end
 
     def hget(hash, key)
-      data[hash][key]
+      value = get(hash)
+      value[key] if value
     end
 
     def hmget(hash, *keys)
-      existing = data.fetch(hash, {})
+      existing = get(hash) || {}
 
       if existing.is_a?(Hash)
         existing.values_at(*keys)
@@ -95,8 +100,12 @@ module Rubbis
     end
 
     def hincrby(hash, key, amount)
-      existing = data[hash][key]
-      data[hash][key] = existing.to_i + amount.to_i
+      value = get(hash)
+
+      return unless value
+
+      existing = value[key]
+      value[key] = existing.to_i + amount.to_i
     end
 
     private

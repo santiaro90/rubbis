@@ -6,6 +6,23 @@ describe Rubbis::State, :unit do
   let(:clock) { FakeClock.new }
   let(:state) { described_class.new(clock) }
 
+  shared_examples "passive expiry" do |set_cmd, get_cmd|
+    it "expires a key passively" do
+      key = "abc"
+
+      set_cmd.call(state, key)
+      state.expire("abc", "1")
+
+      clock.sleep 0.9
+      get_cmd.call(state, key)
+      expect(state.exists("abc")).to eq(1)
+
+      clock.sleep 0.1
+      get_cmd.call(state, key)
+      expect(state.exists("abc")).to eq(0)
+    end
+  end
+
   describe "#set" do
     it "sets a value" do
       expect(state.set("abc", "123")).to eq(:ok)
@@ -32,12 +49,33 @@ describe Rubbis::State, :unit do
     end
   end
 
+  describe "#get" do
+    include_examples "passive expiry",
+                     ->(s, k) { s.set(k, "123") },
+                     ->(s, k) { s.get(k) }
+  end
+
+  describe "#exists" do
+    it "returns the number of keys existing" do
+      expect(state.exists("abc")).to eq(0)
+
+      state.set("abc", "123")
+      expect(state.exists("abc")).to eq(1)
+    end
+  end
+
   describe "#hset" do
     it "sets a value" do
       expect(state.hset("myhash", "abc", "123")).to eq(:ok)
       expect(state.hset("otherhash", "def", "456")).to eq(:ok)
       expect(state.hget("myhash", "abc")).to eq("123")
     end
+  end
+
+  describe "#hget" do
+    include_examples "passive expiry",
+                     ->(s, k) { s.hset(k, "abc", "123") },
+                     ->(s, k) { s.hget(k, "abc") }
   end
 
   describe "#hmget" do
@@ -56,6 +94,10 @@ describe Rubbis::State, :unit do
     it "returns nil when empty" do
       expect(state.hmget("myhash", "key")).to eq([nil])
     end
+
+    include_examples "passive expiry",
+                     ->(s, k) { s.hset(k, "abc", "123") },
+                     ->(s, k) { s.hmget(k, "abc") }
   end
 
   describe "#hincrby" do
@@ -63,18 +105,9 @@ describe Rubbis::State, :unit do
       state.hset("myhash", "abc", "123")
       expect(state.hincrby("myhash", "abc", "2")).to eq(125)
     end
-  end
 
-  describe "#expire" do
-    it "expires a key passively" do
-      state.set("abc", "123")
-      state.expire("abc", "1")
-
-      clock.sleep 0.9
-      expect(state.get("abc")).to eq("123")
-
-      clock.sleep 0.1
-      expect(state.get("abc")).to eq(nil)
-    end
+    include_examples "passive expiry",
+                     ->(s, k) { s.hset(k, "abc", "123") },
+                     ->(s, k) { s.hincrby(k, "abc", "1") }
   end
 end
