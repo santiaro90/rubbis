@@ -41,8 +41,19 @@ module Rubbis
     end
 
     def expire(key, value)
+      pexpire(key, value.to_i * 1000)
+    end
+
+    def expire_keys!(n: 100, threshold: 0.25, rng: Random.new)
+      loop do
+        expired = expires.keys.sample(n, random: rng).count { |key| get(key) }
+        break unless expired > threshold
+      end
+    end
+
+    def pexpire(key, value)
       if get(key)
-        expires[key] = clock.now + value.to_i
+        expires[key] = clock.now + (value.to_i / 1000.0)
         1
       else
         0
@@ -106,6 +117,11 @@ module Rubbis
 
       existing = value[key]
       value[key] = existing.to_i + amount.to_i
+    end
+
+    def keys(pattern)
+      raise "unimplemented" unless pattern == "*"
+      data.keys
     end
 
     private

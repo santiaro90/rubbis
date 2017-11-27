@@ -1,6 +1,6 @@
 require "spec_helper"
 
-describe "Rubbis", :acceptance do
+describe Rubbis::Server, :acceptance do
   it "supports hashes" do
     with_server do
       client.hset("myhash", "abc", "123")

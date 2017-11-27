@@ -8,9 +8,10 @@ module Rubbis
     attr_reader :shutdown_pipe
 
     def initialize(port)
+      @clock = Clock.new
       @port = port
       @shutdown_pipe = IO.pipe
-      @state = State.new(Clock.new)
+      @state = State.new(@clock)
     end
 
     def shutdown
@@ -18,14 +19,23 @@ module Rubbis
     end
 
     def listen
-      readable = []
       clients = {}
-      server = TCPServer.new(port)
 
-      readable << server
-      readable << shutdown_pipe[0]
+      server = TCPServer.new(port)
+      timer_pipe = IO.pipe
 
       running = true
+      readable = [server,  shutdown_pipe[0], timer_pipe[0]]
+
+      timer_thread = Thread.new do
+        begin
+          while running
+            clock.sleep 0.01
+            timer_pipe[1].write(".")
+          end
+        rescue Errno::EPIPE
+        end
+      end
 
       while running
         ready_to_read = IO.select(readable + clients.keys).first
@@ -37,6 +47,8 @@ module Rubbis
             clients[child_socket] = Handler.new(child_socket)
           when shutdown_pipe[0]
             running = false
+          when timer_pipe[0]
+            state.expire_keys!
           else
             begin
               clients[socket].process!(@state)
@@ -48,7 +60,11 @@ module Rubbis
         end
       end
     ensure
+      running = false
+
       (readable + clients.keys).each(&:close)
+      timer_pipe.close if timer_pipe
+      timer_thread.join if timer_thread
     end
 
     class Clock
@@ -91,6 +107,6 @@ module Rubbis
 
     private
 
-    attr_reader :port
+    attr_reader :port, :clock, :state
   end
 end

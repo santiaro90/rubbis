@@ -110,4 +110,13 @@ describe Rubbis::State, :unit do
                      ->(s, k) { s.hset(k, "abc", "123") },
                      ->(s, k) { s.hincrby(k, "abc", "1") }
   end
+
+  describe "#keys" do
+    it "returns all keys in the database for *" do
+      state.set("abc", "123")
+      state.set("def", "123")
+
+      expect(state.keys("*")).to eq(%w[abc def])
+    end
+  end
 end
