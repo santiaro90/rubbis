@@ -47,7 +47,7 @@ module Rubbis
     def expire_keys!(n: 100, threshold: 0.25, rng: Random.new)
       loop do
         expired = expires.keys.sample(n, random: rng).count { |key| get(key) }
-        break unless expired > threshold
+        break unless expired > n * threshold
       end
     end
 
@@ -122,6 +122,89 @@ module Rubbis
     def keys(pattern)
       raise "unimplemented" unless pattern == "*"
       data.keys
+    end
+
+    def zadd(key, score, member)
+      score = score.to_f
+      value = get(key) || data[key] = ZSet.new
+
+      value.add(score, member)
+      1
+    end
+
+    def zrank(key, member)
+      value = get(key)
+      value.rank(member) if value
+    end
+
+    def zscore(key, member)
+      value = get(key)
+      value.score(member) if value
+    end
+
+    def zrange(key, start, stop)
+      value = get(key)
+
+      if value
+        value.range(start.to_i, stop.to_i)
+      else
+        []
+      end
+    end
+
+    class ZSet
+      attr_reader :entries_to_score, :sorted_by_score
+
+      def initialize
+        @entries_to_score = {}
+        @sorted_by_score = []
+      end
+
+      def add(score, member)
+        elem = [score, member]
+        index = bsearch_index(sorted_by_score, elem)
+
+        entries_to_score[member] = score
+        sorted_by_score.insert(index, elem)
+      end
+
+      def range(start, stop)
+        sorted_by_score[start..stop].map { |x| x[1] }
+      end
+
+      def rank(member)
+        score = entries_to_score[member]
+
+        return unless score
+
+        bsearch_index(sorted_by_score, [score, member])
+      end
+
+      def score(member)
+        entries_to_score[member]
+      end
+
+      def bsearch_index(ary, x)
+        return 0 if ary.empty?
+
+        low = 0
+        high = ary.length - 1
+
+        while high >= low
+          idx = low + (high - low) / 2
+          comp = ary[idx] <=> x
+
+          return idx if comp.zero?
+
+          if comp > 0
+            high = idx - 1
+          else
+            low = idx + 1
+          end
+        end
+
+        idx + (comp < 0 ? 1 : 0)
+      end
     end
 
     private

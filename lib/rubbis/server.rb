@@ -25,7 +25,7 @@ module Rubbis
       timer_pipe = IO.pipe
 
       running = true
-      readable = [server,  shutdown_pipe[0], timer_pipe[0]]
+      readable = [server, shutdown_pipe[0], timer_pipe[0]]
 
       timer_thread = Thread.new do
         begin

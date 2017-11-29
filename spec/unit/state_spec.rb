@@ -119,4 +119,38 @@ describe Rubbis::State, :unit do
       expect(state.keys("*")).to eq(%w[abc def])
     end
   end
+
+  describe "sorted set" do
+    it "fetches keys by ranks" do
+      state.zadd("leaderboard", "1000", "alice")
+      state.zadd("leaderboard", "3000", "bob")
+      state.zadd("leaderboard", "2000", "charlie")
+
+      expect(state.zrange("leaderboard", "0", "1")).to eq(%w[alice charlie])
+    end
+
+    it "fetches rank by member" do
+      state.zadd("leaderboard", "1000", "alice")
+      state.zadd("leaderboard", "3000", "bob")
+      state.zadd("leaderboard", "2000", "charlie")
+
+      expect(state.zrank("leaderboard", "charlie")).to eq(1)
+    end
+
+    it "fetches score by member" do
+      state.zadd("leaderboard", "1000", "alice")
+      state.zadd("leaderboard", "3000", "bob")
+      state.zadd("leaderboard", "2000", "charlie")
+
+      expect(state.zscore("leaderboard", "charlie")).to eq(2000)
+    end
+
+    it "breaks ties using values" do
+      state.zadd("leaderboard", "1000", "alice")
+      state.zadd("leaderboard", "1000", "bob")
+      state.zadd("leaderboard", "1000", "charlie")
+
+      expect(state.zrange("leaderboard", "0", "1")).to eq(%w[alice bob])
+    end
+  end
 end
