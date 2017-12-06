@@ -83,6 +83,11 @@ module Rubbis
       def initialize(socket)
         @client = socket
         @buffer = ""
+        @tx_buffer = nil
+      end
+
+      def in_tx?
+        @tx_buffer
       end
 
       def process!(state)
@@ -91,17 +96,36 @@ module Rubbis
         cmds, processed = Protocol.unmarshal(buffer)
         @buffer = buffer[processed..-1]
 
-        cmds.each { |cmd| exec_command(cmd, state) }
+        cmds.each { |cmd| exec_command(state, cmd) }
       end
 
-      def exec_command(cmd, state)
-        response = case cmd.first.downcase
-                   when "ping" then :pong
-                   when "echo" then cmd[1]
-                   else state.apply_command(cmd)
+      def exec_command(state, cmd)
+        response = if in_tx?
+                     case cmd.first.downcase
+                     when "exec"
+                       result = @tx_buffer.map { |cm| dispatch(state, cm) }
+                       @tx_buffer = nil
+                       result
+                     else
+                       @tx_buffer << cmd
+                       :queued
+                     end
+                   else
+                     dispatch(state, cmd)
                    end
 
         client.write(Protocol.marshal(response))
+      end
+
+      def dispatch(state, cmd)
+        case cmd.first.downcase
+        when "ping" then :pong
+        when "echo" then cmd[1]
+        when "multi" then
+          @tx_buffer = []
+          :ok
+        else state.apply_command(cmd)
+        end
       end
     end
 
