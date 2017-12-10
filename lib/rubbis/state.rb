@@ -17,14 +17,15 @@ module Rubbis
 
   class State
     def initialize(clock)
+      @clock = clock
       @data = {}
       @expires = {}
-      @clock = clock
+      @watches = {}
     end
 
     def self.valid_command?(cmd)
       @valid_comands ||= Set.new(
-        public_instance_methods(false).map(&:to_s) - ["apply_command"]
+        public_instance_methods(false).map(&:to_s) - %w[apply_command watch]
       )
 
       @valid_comands.include?(cmd)
@@ -60,6 +61,12 @@ module Rubbis
       end
     end
 
+    def watch(key, &block)
+      watches[key] ||= []
+      watches[key] << block if block
+      :ok
+    end
+
     def set(*args)
       key, value, modifier = args
 
@@ -72,6 +79,7 @@ module Rubbis
       return if xx && !exists
       return if nx && exists
 
+      touch!(key)
       data[key] = value
       :ok
     end
@@ -209,6 +217,11 @@ module Rubbis
 
     private
 
-    attr_reader :data, :clock, :expires
+    def touch!(key)
+      ws = watches.delete(key) || []
+      ws.each(&:call)
+    end
+
+    attr_reader :data, :clock, :expires, :watches
   end
 end
