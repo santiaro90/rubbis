@@ -153,4 +153,18 @@ describe Rubbis::State, :unit do
       expect(state.zrange("leaderboard", "0", "1")).to eq(%w[alice bob])
     end
   end
+
+  describe "lists" do
+    it "supports basic operations" do
+      state.lpush("q", "a")
+      state.lpush("q", "b")
+      state.lpush("q", "c")
+
+      expect(state.llen("q")).to eq(3)
+      expect(state.lrange("q", "0", "1")).to eq(%w[c b])
+
+      expect(state.rpop("q")).to eq("a")
+      expect(state.llen("q")).to eq(2)
+    end
+  end
 end

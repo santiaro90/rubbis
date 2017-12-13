@@ -132,6 +132,8 @@ module Rubbis
       data.keys
     end
 
+    # Sorted sets
+
     def zadd(key, score, member)
       score = score.to_f
       value = get(key) || data[key] = ZSet.new
@@ -155,6 +157,41 @@ module Rubbis
 
       if value
         value.range(start.to_i, stop.to_i)
+      else
+        []
+      end
+    end
+
+    # Lists
+
+    def lpush(key, value)
+      list = get(key)
+      list ||= data[key] = []
+
+      touch!(key)
+
+      list.unshift(value)
+      list.length
+    end
+
+    def llen(key)
+      list = get(key) || []
+      list.length
+    end
+
+    def rpop(key)
+      list = get(key)
+      list ||= data[key] = []
+
+      touch!(key)
+      list.pop
+    end
+
+    def lrange(key, start, stop)
+      list = get(key)
+
+      if list
+        list[start.to_i..stop.to_i]
       else
         []
       end
