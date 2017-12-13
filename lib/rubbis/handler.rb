@@ -41,11 +41,17 @@ module Rubbis
                    dispatch(state, cmd)
                  end
 
+      respond!(response) unless response == :block
+      state.process_list_watches!
+    end
+
+    def respond!(response)
       client.write(Protocol.marshal(response))
     end
 
     def dispatch(state, cmd)
       case cmd.first.downcase
+      when "brpop" then state.brpop(cmd[1], self)
       when "ping" then :pong
       when "echo" then cmd[1]
       when "multi" then

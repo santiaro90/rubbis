@@ -20,6 +20,8 @@ module Rubbis
       @clock = clock
       @data = {}
       @expires = {}
+      @list_watches = {}
+      @ready_keys = []
       @watches = {}
     end
 
@@ -50,6 +52,20 @@ module Rubbis
         expired = expires.keys.sample(n, random: rng).count { |key| get(key) }
         break unless expired > n * threshold
       end
+    end
+
+    def process_list_watches!
+      ready_keys.each do |key|
+        list = get(key)
+        watches = list_watches.fetch(key, [])
+
+        while list.any? && watches.any?
+          op, client = *watches.shift
+          client.respond!(op.call)
+        end
+      end
+
+      ready_keys.clear
     end
 
     def pexpire(key, value)
@@ -168,6 +184,10 @@ module Rubbis
       list = get(key)
       list ||= data[key] = []
 
+      if list_watches.fetch(key, []).any?
+        ready_keys << key
+      end
+
       touch!(key)
 
       list.unshift(value)
@@ -194,6 +214,21 @@ module Rubbis
         list[start.to_i..stop.to_i]
       else
         []
+      end
+    end
+
+    def brpop(key, client)
+      list = get(key)
+      list ||= data[key] = []
+
+      action = -> { rpop(key) }
+
+      if list.empty?
+        list_watches[key] ||= []
+        list_watches[key] << [action, client]
+        :block
+      else
+        action.call
       end
     end
 
@@ -259,6 +294,6 @@ module Rubbis
       ws.each(&:call)
     end
 
-    attr_reader :data, :clock, :expires, :watches
+    attr_reader :data, :clock, :expires, :list_watches, :ready_keys, :watches
   end
 end
