@@ -1,7 +1,6 @@
 require "socket"
 
 require "rubbis/handler"
-require "rubbis/protocol"
 require "rubbis/state"
 
 module Rubbis
@@ -12,7 +11,7 @@ module Rubbis
       @clock = Clock.new
       @port = port
       @shutdown_pipe = IO.pipe
-      @state = State.new(@clock)
+      @state = Rubbis::State.new(@clock)
     end
 
     def shutdown
@@ -45,7 +44,7 @@ module Rubbis
           case socket
           when server
             child_socket = socket.accept
-            clients[child_socket] = Handler.new(child_socket)
+            clients[child_socket] = Rubbis::Handler.new(child_socket)
           when shutdown_pipe[0]
             running = false
           when timer_pipe[0]
@@ -54,7 +53,8 @@ module Rubbis
             begin
               clients[socket].process!(@state)
             rescue EOFError
-              clients.delete(socket)
+              handler = clients.delete(socket)
+              handler.disconnect!
               socket.close
             end
           end

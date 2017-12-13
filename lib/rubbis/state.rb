@@ -61,7 +61,7 @@ module Rubbis
 
         while list.any? && watches.any?
           op, client = *watches.shift
-          client.respond!(op.call)
+          client.respond!(op.call) if client.active?
         end
       end
 

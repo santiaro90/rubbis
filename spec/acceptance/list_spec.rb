@@ -23,4 +23,15 @@ describe Rubbis, :acceptance do
       t2.value
     end
   end
+
+  it "handles disconnecting clients" do
+    with_server do
+      s = TCPSocket.new("localhost", 6380)
+      s.write("*3\r\n$5\r\nbrpop\r\n$5\r\nqueue\r\n$1\r\n0\r\n")
+      s.close
+
+      expect(client.lpush("queue", "a")).to eq(1)
+      expect(client.lpush("queue", "b")).to eq(2)
+    end
+  end
 end

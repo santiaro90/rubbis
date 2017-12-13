@@ -1,3 +1,4 @@
+require "rubbis/protocol"
 require "rubbis/transaction"
 
 module Rubbis
@@ -14,14 +15,14 @@ module Rubbis
     def process!(state)
       buffer << client.read_nonblock(1024)
 
-      cmds, processed = Protocol.unmarshal(buffer)
+      cmds, processed = Rubbis::Protocol.unmarshal(buffer)
       @buffer = buffer[processed..-1]
 
       cmds.each { |cmd| exec_command(state, cmd) }
     end
 
     def reset_tx!
-      @tx = Transaction.new
+      @tx = Rubbis::Transaction.new
     end
 
     def exec_command(state, cmd)
@@ -46,7 +47,15 @@ module Rubbis
     end
 
     def respond!(response)
-      client.write(Protocol.marshal(response))
+      client.write(Rubbis::Protocol.marshal(response)) if client
+    end
+
+    def active?
+      client
+    end
+
+    def disconnect!
+      @client = nil
     end
 
     def dispatch(state, cmd)
