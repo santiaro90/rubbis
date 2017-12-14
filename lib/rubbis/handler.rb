@@ -29,10 +29,14 @@ module Rubbis
       response = if tx.active?
                    case cmd.first.downcase
                    when "exec"
-                     result = tx.buffer.map do |cm|
-                       dispatch(state, cm)
-                     end unless tx.dirty?
+                     result = unless tx.dirty?
+                                tx.buffer.map do |cm|
+                                  dispatch(state, cm)
+                                end
+                              end
+
                      reset_tx!
+
                      result
                    else
                      tx.queue(cmd)
@@ -60,17 +64,13 @@ module Rubbis
 
     def dispatch(state, cmd)
       case cmd.first.downcase
-      when "brpop" then state.brpop(cmd[1], self)
-      when "brpoplpush" then state.brpoplpush(cmd[1], cmd[2], self)
-      when "ping" then :pong
-      when "echo" then cmd[1]
-      when "multi" then
+      when "multi"
         tx.start!
         :ok
       when "watch" then
         current_tx = tx
         state.watch(cmd[1]) { tx.dirty! if current_tx == tx }
-      else state.apply_command(cmd)
+      else state.apply_command(self, cmd)
       end
     end
   end

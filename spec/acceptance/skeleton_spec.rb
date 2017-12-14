@@ -1,6 +1,6 @@
 require "spec_helper"
 
-describe Rubbis::Server, :acceptance do
+describe Rubbis, :acceptance do
   it "responds to ping" do
     with_server do
       c = client

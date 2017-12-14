@@ -1,7 +1,6 @@
 require "spec_helper"
 
 require "rubbis/protocol"
-require "rubbis/state"
 
 describe Rubbis::Protocol do
   describe ".marshal" do

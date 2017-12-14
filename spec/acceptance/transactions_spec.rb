@@ -1,6 +1,6 @@
 require "spec_helper"
 
-describe Rubbis::Server, :acceptance do
+describe Rubbis, :acceptance do
   it "handles transactions" do
     with_server do
       c = client

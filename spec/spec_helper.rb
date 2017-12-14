@@ -21,7 +21,6 @@ module AcceptanceHelpers
 
     yield
   rescue Timeout::Error
-    sleep 0.01
     server_thread.value unless server_thread.alive?
 
     raise

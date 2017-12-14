@@ -1,6 +1,6 @@
 require "spec_helper"
 
-describe Rubbis::Server, :acceptance do
+describe Rubbis, :acceptance do
   it "actively expires keys" do
     with_server do
       n = 10
