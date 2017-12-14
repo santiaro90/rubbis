@@ -155,6 +155,25 @@ describe Rubbis::State, :unit do
   end
 
   describe "lists" do
+    it "supports rpoplpush" do
+      state.lpush("q", "a")
+      state.lpush("q", "b")
+      state.lpush("q", "c")
+
+      expect(state.rpoplpush("q", "p")).to eq("a")
+      expect(state.lrange("q", "0", "-1")).to eq(%w[c b])
+      expect(state.lrange("p", "0", "-1")).to eq(%w[a])
+    end
+
+    it "supports cyclic rpoplpush" do
+      state.lpush("q", "a")
+      state.lpush("q", "b")
+      state.lpush("q", "c")
+
+      expect(state.rpoplpush("q", "q")).to eq("a")
+      expect(state.lrange("q", "0", "-1")).to eq(%w[a c b])
+    end
+
     it "supports basic operations" do
       state.lpush("q", "a")
       state.lpush("q", "b")

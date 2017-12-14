@@ -61,6 +61,7 @@ module Rubbis
     def dispatch(state, cmd)
       case cmd.first.downcase
       when "brpop" then state.brpop(cmd[1], self)
+      when "brpoplpush" then state.brpoplpush(cmd[1], cmd[2], self)
       when "ping" then :pong
       when "echo" then cmd[1]
       when "multi" then

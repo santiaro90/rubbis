@@ -6,21 +6,37 @@ describe Rubbis, :acceptance do
       items = %w[a b]
 
       t1 = Thread.new do
-        item = client.brpop("queue")
+        item = client.brpop("q")
         expect(item).to eq(items.shift)
       end
 
       t2 = Thread.new do
-        item = client.brpop("queue")
+        item = client.brpop("q")
         expect(item).to eq(items.shift)
       end
 
       items.dup.each do |item|
-        expect(client.lpush("queue", item)).to eq(1)
+        expect(client.lpush("q", item)).to eq(1)
       end
 
       t1.value
       t2.value
+    end
+  end
+
+  it "supports brpoplpush" do
+    with_server do
+      c = client
+
+      t1 = Thread.new do
+        item = c.brpoplpush("q", "processing")
+        expect(item).to eq("a")
+        expect(c.lrange("processing", "0", "-1")).to eq(%w[a])
+      end
+
+      c.lpush("q", "a")
+
+      t1.value
     end
   end
 

@@ -217,18 +217,36 @@ module Rubbis
       end
     end
 
-    def brpop(key, client)
-      list = get(key)
-      list ||= data[key] = []
+    def rpoplpush(source, dest)
+      item = rpop(source)
 
+      return unless item
+
+      lpush(dest, item)
+      item
+    end
+
+    def brpop(key, client)
       action = -> { rpop(key) }
 
-      if list.empty?
+      if llen(key) > 0
+        action.call
+      else
         list_watches[key] ||= []
         list_watches[key] << [action, client]
         :block
-      else
+      end
+    end
+
+    def brpoplpush(source, dest, client)
+      action = -> { rpoplpush(source, dest) }
+
+      if llen(source) > 0
         action.call
+      else
+        list_watches[source] ||= []
+        list_watches[source] << [action, client]
+        :block
       end
     end
 
