@@ -58,7 +58,8 @@ module Rubbis
       client
     end
 
-    def disconnect!
+    def disconnect!(state)
+      state.unsubscribe_all(self)
       @client = nil
     end
 

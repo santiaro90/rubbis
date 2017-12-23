@@ -64,7 +64,7 @@ module Rubbis
               clients[socket].process!(state)
             rescue EOFError
               handler = clients.delete(socket)
-              handler.disconnect!
+              handler.disconnect!(state)
               socket.close
             end
           end

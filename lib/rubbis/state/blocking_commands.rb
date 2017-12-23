@@ -23,5 +23,33 @@ module Rubbis
         :block
       end
     end
+
+    def subscribe(channel, client)
+      subscribers[channel] << client
+      channels[client] << channel
+
+      ["subscribe", channel, channel_count(client)]
+    end
+
+    def unsubscribe(channel, client)
+      subscribers[channel].delete(client)
+      channels[client].delete(channel)
+
+      ["unsubscribe", channel, channel_count(client)]
+    end
+
+    def psubscribe(channel, client)
+      psubscribers[channel] << client
+      pchannels[client] << channel
+
+      ["psubscribe", channel, channel_count(client)]
+    end
+
+    def punsubscribe(channel, client)
+      psubscribers[channel].delete(client)
+      pchannels[client].delete(channel)
+
+      ["punsubscribe", channel, channel_count(client)]
+    end
   end
 end

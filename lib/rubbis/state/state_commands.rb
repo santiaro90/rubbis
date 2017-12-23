@@ -167,5 +167,11 @@ module Rubbis
       lpush(dest, item)
       item
     end
+
+    def publish(channel, message)
+      subscribers_for(channel).each do |client|
+        client.respond!(["message", channel, message])
+      end.length
+    end
   end
 end

@@ -24,11 +24,15 @@ module Rubbis
     include Rubbis::StateCommands
 
     def initialize(clock)
+      @channels = Hash.new { |h, k| h[k] = Set.new }
       @clock = clock
       @data = {}
       @expires = {}
       @list_watches = {}
+      @psubscribers = Hash.new { |h, k| h[k] = Set.new }
+      @pchannels = Hash.new { |h, k| h[k] = Set.new }
       @ready_keys = []
+      @subscribers = Hash.new { |h, k| h[k] = Set.new }
       @watches = {}
     end
 
@@ -54,6 +58,16 @@ module Rubbis
       cmd << client if State.blocking_command?(cmd[0])
 
       public_send(*cmd)
+    end
+
+    def channel_count(client)
+      channels[client].length + pchannels[client].length
+    end
+
+    def subscribers_for(channel)
+      subscribers[channel].to_a + psubscribers.select do |pattern, _|
+        File.fnmatch(pattern, channel)
+      end.values.map(&:to_a).flatten
     end
 
     def expire_keys!(n: 100, threshold: 0.25, rng: Random.new)
@@ -83,6 +97,12 @@ module Rubbis
       :ok
     end
 
+    def unsubscribe_all(client)
+      (channels.delete(client) || Set.new).each do |channel|
+        subscribers.delete(channel)
+      end
+    end
+
     private
 
     def touch!(key)
@@ -90,6 +110,8 @@ module Rubbis
       ws.each(&:call)
     end
 
-    attr_reader :data, :clock, :expires, :list_watches, :ready_keys, :watches
+    attr_reader :data, :clock, :expires, :list_watches,
+                :ready_keys, :watches, :subscribers, :channels,
+                :psubscribers, :pchannels
   end
 end
