@@ -103,6 +103,14 @@ module Rubbis
       end
     end
 
+    def serialize
+      Marshal.dump([@data, @expires])
+    end
+
+    def deserialize(bytes)
+      @data, @expires = *Marshal.load(bytes)
+    end
+
     private
 
     def touch!(key)

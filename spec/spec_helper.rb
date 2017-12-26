@@ -1,5 +1,7 @@
 require "English"
 require "redis"
+require "tmpdir"
+require "fileutils"
 
 require "rubbis/server"
 
@@ -13,7 +15,7 @@ module AcceptanceHelpers
   def with_server
     server = nil
     server_thread = Thread.new do
-      server = Rubbis::Server.new(TEST_PORT)
+      server = Rubbis::Server.new(TEST_PORT, test_db)
       server.listen
     end
 
@@ -56,5 +58,13 @@ class FakeClock
 end
 
 RSpec.configure do |c|
+  def test_db
+    Dir.tmpdir + "/rubbis_test.dump"
+  end
+
+  c.before(:each) do
+    FileUtils.rm_f(test_db)
+  end
+
   c.include AcceptanceHelpers, acceptance: true
 end

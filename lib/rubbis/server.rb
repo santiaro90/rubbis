@@ -1,12 +1,11 @@
 require "socket"
+require "tempfile"
 
 require "rubbis/handler"
 require "rubbis/state"
 
 module Rubbis
   class Server
-    attr_reader :shutdown_pipe
-
     class Clock
       def now
         Time.now.to_f
@@ -17,9 +16,11 @@ module Rubbis
       end
     end
 
-    def initialize(port)
+    def initialize(port, server_file = nil)
+      @bgsaves = []
       @clock = Clock.new
       @port = port
+      @server_file = server_file
       @shutdown_pipe = IO.pipe
       @state = Rubbis::State.new(@clock)
     end
@@ -29,6 +30,10 @@ module Rubbis
     end
 
     def listen
+      if server_file && File.exist?(server_file)
+        @state.deserialize(File.read(server_file))
+      end
+
       clients = {}
 
       running = true
@@ -54,11 +59,12 @@ module Rubbis
           case socket
           when server
             child_socket = socket.accept_nonblock
-            clients[child_socket] = Rubbis::Handler.new(child_socket)
+            clients[child_socket] = Rubbis::Handler.new(child_socket, self)
           when shutdown_pipe[0]
             running = false
           when timer_pipe[0]
             state.expire_keys!
+            check_background_processes!
           else
             begin
               clients[socket].process!(state)
@@ -73,14 +79,45 @@ module Rubbis
     ensure
       running = false
 
+      bgsaves.each { |pid| Process.wait(pid) }
       (readable + clients.keys).each(&:close)
 
       timer_pipe.each { |f| f.close rescue IOError } if timer_pipe
       timer_thread.join if timer_thread
     end
 
+    def bgsave
+      bgsaves << fork do
+        begin
+          tmp_file = Tempfile.new(File.basename(server_file))
+
+          tmp_file.write(state.serialize)
+          tmp_file.close
+
+          FileUtils.mv(tmp_file, server_file)
+        ensure
+          if tmp_file
+            tmp_file.close
+            tmp_file.unlink
+          end
+        end
+      end
+    end
+
+    def check_background_processes!
+      bgsaves.delete_if do |pid|
+        result = Process.waitpid2(pid, Process::WNOHANG)
+
+        if result
+          # Check exit status, update metadata
+          true
+        end
+      end
+    end
+
     private
 
-    attr_reader :port, :clock, :state
+    attr_reader :port, :clock, :server_file,
+                :shutdown_pipe, :state, :bgsaves
   end
 end

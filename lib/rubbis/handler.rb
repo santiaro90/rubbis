@@ -3,11 +3,12 @@ require "rubbis/transaction"
 
 module Rubbis
   class Handler
-    attr_reader :client, :buffer, :tx
+    attr_reader :client, :buffer, :server, :tx
 
-    def initialize(socket)
+    def initialize(socket, server)
       @client = socket
       @buffer = ""
+      @server = server
 
       reset_tx!
     end
@@ -65,6 +66,9 @@ module Rubbis
 
     def dispatch(state, cmd)
       case cmd.first.downcase
+      when "bgsave"
+        server.bgsave
+        :ok
       when "multi"
         tx.start!
         :ok
