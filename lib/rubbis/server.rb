@@ -1,4 +1,6 @@
+require "pp"
 require "socket"
+require "stringio"
 require "tempfile"
 
 require "rubbis/handler"
@@ -16,11 +18,17 @@ module Rubbis
       end
     end
 
-    def initialize(port, server_file = nil)
+    class AofClient < StringIO
+      def write(*_); end
+    end
+
+    def initialize(opts = {})
+      @aof_file = opts[:aof_file]
+      @port = opts[:port]
+      @server_file = opts[:server_file]
+
       @bgsaves = []
       @clock = Clock.new
-      @port = port
-      @server_file = server_file
       @shutdown_pipe = IO.pipe
       @state = Rubbis::State.new(@clock)
     end
@@ -30,7 +38,11 @@ module Rubbis
     end
 
     def listen
-      if server_file && File.exist?(server_file)
+      @command_log = File.open(aof_file, "a") if aof_file
+
+      if aof_file && File.exist?(aof_file)
+        apply_log(File.read(aof_file))
+      elsif server_file && File.exist?(server_file)
         @state.deserialize(File.read(server_file))
       end
 
@@ -86,7 +98,25 @@ module Rubbis
       timer_thread.join if timer_thread
     end
 
+    def apply_log(contents)
+      return if contents.empty?
+      Handler.new(AofClient.new(contents), self).process!(state)
+    end
+
+    def commit!
+      return unless command_log
+
+      state.log.each do |cmd|
+        command_log.write(Rubbis::Protocol.marshal(cmd))
+      end
+
+      command_log.fsync
+      state.log.clear
+    end
+
     def bgsave
+      return unless server_file
+
       bgsaves << fork do
         begin
           tmp_file = Tempfile.new(File.basename(server_file))
@@ -118,6 +148,7 @@ module Rubbis
     private
 
     attr_reader :port, :clock, :server_file,
-                :shutdown_pipe, :state, :bgsaves
+                :shutdown_pipe, :state, :bgsaves,
+                :aof_file, :command_log
   end
 end

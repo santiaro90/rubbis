@@ -37,6 +37,8 @@ module Rubbis
       return if xx && !exists
       return if nx && exists
 
+      log << ["set", key, value]
+
       touch!(key)
       data[key] = value
       :ok

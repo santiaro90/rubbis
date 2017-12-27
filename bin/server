@@ -6,4 +6,4 @@ $LOAD_PATH.unshift File.expand_path("../../lib", __FILE__)
 
 require "rubbis/server"
 
-Rubbis::Server.new(port).listen
+Rubbis::Server.new(port: port, aof_file: "rubbis.aof").listen

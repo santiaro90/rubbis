@@ -1,7 +1,7 @@
 require "English"
+require "fileutils"
 require "redis"
 require "tmpdir"
-require "fileutils"
 
 require "rubbis/server"
 
@@ -12,10 +12,14 @@ module AcceptanceHelpers
     Redis.new(host: "localhost", port: TEST_PORT)
   end
 
-  def with_server
+  def with_server(opts = {})
     server = nil
     server_thread = Thread.new do
-      server = Rubbis::Server.new(TEST_PORT, test_db)
+      server = Rubbis::Server.new(
+        port: TEST_PORT,
+        server_file: opts[:server_file] ? test_db : nil,
+        aof_file: opts[:aof_file] ? aof_test_db : nil
+      )
       server.listen
     end
 
@@ -44,17 +48,15 @@ module AcceptanceHelpers
 end
 
 class FakeClock
-  attr_reader :t
+  attr_reader :now
 
   def initialize
-    @t = 0
+    @now = 0
   end
 
   def sleep(t)
-    @t += t
+    @now += t
   end
-
-  alias now t
 end
 
 RSpec.configure do |c|
@@ -62,8 +64,13 @@ RSpec.configure do |c|
     Dir.tmpdir + "/rubbis_test.dump"
   end
 
+  def aof_test_db
+    Dir.tmpdir + "/rubbis_test.aof"
+  end
+
   c.before(:each) do
     FileUtils.rm_f(test_db)
+    FileUtils.rm_f(aof_test_db)
   end
 
   c.include AcceptanceHelpers, acceptance: true

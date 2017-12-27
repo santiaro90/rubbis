@@ -52,6 +52,7 @@ module Rubbis
     end
 
     def respond!(response)
+      server.commit!
       client.write(Rubbis::Protocol.marshal(response)) if client
     end
 

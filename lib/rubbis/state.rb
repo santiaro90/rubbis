@@ -23,11 +23,14 @@ module Rubbis
     include Rubbis::BlockingCommands
     include Rubbis::StateCommands
 
+    attr_reader :log
+
     def initialize(clock)
       @channels = Hash.new { |h, k| h[k] = Set.new }
       @clock = clock
       @data = {}
       @expires = {}
+      @log = []
       @list_watches = {}
       @psubscribers = Hash.new { |h, k| h[k] = Set.new }
       @pchannels = Hash.new { |h, k| h[k] = Set.new }
