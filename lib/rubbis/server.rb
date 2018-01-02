@@ -29,6 +29,7 @@ module Rubbis
 
       @bgsaves = []
       @clock = Clock.new
+      @last_fsync = 0
       @shutdown_pipe = IO.pipe
       @state = Rubbis::State.new(@clock)
     end
@@ -77,6 +78,11 @@ module Rubbis
           when timer_pipe[0]
             state.expire_keys!
             check_background_processes!
+
+            if command_log && clock.now - last_fsync >= 1
+              @last_fsync = clock.now
+              command_log.fdatasync
+            end
           else
             begin
               clients[socket].process!(state)
@@ -110,7 +116,6 @@ module Rubbis
         command_log.write(Rubbis::Protocol.marshal(cmd))
       end
 
-      command_log.fsync
       state.log.clear
     end
 
@@ -149,6 +154,6 @@ module Rubbis
 
     attr_reader :port, :clock, :server_file,
                 :shutdown_pipe, :state, :bgsaves,
-                :aof_file, :command_log
+                :aof_file, :command_log, :last_fsync
   end
 end
