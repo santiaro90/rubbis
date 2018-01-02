@@ -73,7 +73,7 @@ module Rubbis
       end.values.map(&:to_a).flatten
     end
 
-    def expire_keys!(n: 100, threshold: 0.25, rng: Random.new)
+    def expire_keys!(n: 20, threshold: 0.25, rng: Random.new)
       loop do
         expired = expires.keys.sample(n, random: rng).count { |key| get(key) }
         break unless expired > n * threshold

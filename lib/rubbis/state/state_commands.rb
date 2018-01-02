@@ -17,8 +17,13 @@ module Rubbis
     end
 
     def pexpire(key, value)
+      pexpireat(key, clock.now * 1000 + value.to_i)
+    end
+
+    def pexpireat(key, value)
       if get(key)
-        expires[key] = clock.now + (value.to_i / 1000.0)
+        expires[key] = (value.to_i / 1000.0)
+        log << ["pexpireat", key, value.to_i.round.to_s]
         1
       else
         0
@@ -52,8 +57,8 @@ module Rubbis
     end
 
     def del(key)
+      log << ["del", key] if data.delete(key)
       expires.delete(key)
-      data.delete(key)
     end
 
     def hset(hash, key, value)

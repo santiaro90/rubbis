@@ -186,4 +186,17 @@ describe Rubbis::State, :unit do
       expect(state.llen("q")).to eq(2)
     end
   end
+
+  describe "#pexpireat" do
+    it "sets absolute expiry" do
+      state.set("abc", "123")
+      state.pexpireat("abc", "1000")
+
+      clock.sleep 0.9
+      expect(state.get("abc")).to eq("123")
+
+      clock.sleep 0.1
+      expect(state.get("abc")).to eq(nil)
+    end
+  end
 end
